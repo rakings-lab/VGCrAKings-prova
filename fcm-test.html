@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prova notifiche Firebase</title>
+<style>
+  body{margin:0;padding:20px;background:#1a0a14;color:#fff;font:16px/1.5 system-ui,sans-serif;max-width:640px}
+  h1{font-size:22px;margin:0 0 4px}
+  .note{color:#e8b4c4;margin:0 0 16px}
+  button{display:block;width:100%;margin:10px 0;padding:14px;border:0;border-radius:12px;background:#ff1f3d;color:#fff;font-size:16px;font-weight:700}
+  button.sec{background:#3a2030}
+  textarea{width:100%;box-sizing:border-box;height:110px;margin:6px 0;padding:10px;border-radius:10px;border:1px solid #5a3a4a;background:#0f0509;color:#fff;font:12px/1.4 monospace}
+  pre{white-space:pre-wrap;word-break:break-word;background:#0f0509;border-radius:10px;padding:10px;font-size:13px;min-height:80px}
+</style>
+</head>
+<body>
+<h1>Prova notifiche Firebase</h1>
+<p class="note">Pagina di prova: non fa parte del sito vero e non invia nulla a nessuno.</p>
+<button id="on">1. Attiva le notifiche</button>
+<p>Token di questo dispositivo:</p>
+<textarea id="tok" readonly placeholder="Qui comparira' il token"></textarea>
+<button id="copy" class="sec">2. Copia il token</button>
+<button id="off" class="sec">Disattiva le notifiche di prova</button>
+<pre id="log"></pre>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+import { getMessaging, getToken, deleteToken, isSupported } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-messaging.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAPE0sYnI7oc-qXgsrQPc2qDvzkDx8u-mg",
+  authDomain: "rakings-test.firebaseapp.com",
+  projectId: "rakings-test",
+  storageBucket: "rakings-test.firebasestorage.app",
+  messagingSenderId: "719479182646",
+  appId: "1:719479182646:web:82082cbd6c5afbbb02cf97"
+};
+const VAPID_KEY = "BE00sOYkRBGREzcGLV3zLSpdFdIp-zxmnuME0SnS-h3C6jpJG-lacZ0S6dUDF1IyaLyEz-R8iHkRmLStZnJbtp0";
+
+const $ = (id) => document.getElementById(id);
+const logEl = $("log");
+function log(t) { logEl.textContent += t + "\n"; }
+
+let app, messaging, reg;
+
+function waitActive(r) {
+  return new Promise(function (ok, ko) {
+    if (r.active) return ok(r);
+    var w = r.installing || r.waiting;
+    if (!w) return ko(new Error("service worker non trovato"));
+    w.addEventListener("statechange", function () {
+      if (w.state === "activated") ok(r);
+      if (w.state === "redundant") ko(new Error("service worker non installato"));
+    });
+  });
+}
+
+async function attiva() {
+  try {
+    if (!("serviceWorker" in navigator) || !("Notification" in window)) {
+      log("Questo browser non supporta le notifiche web."); return;
+    }
+    if (!(await isSupported())) { log("Firebase Messaging non e' supportato in questo browser."); return; }
+    if (navigator.brave) log("Browser: Brave. Se fallisce, attiva 'Usa i servizi Google per i messaggi push' in Impostazioni > Privacy e sicurezza.");
+    log("Chiedo il permesso...");
+    const perm = await Notification.requestPermission();
+    log("Permesso: " + perm);
+    if (perm !== "granted") { log("Senza permesso non si puo' continuare."); return; }
+    app = app || initializeApp(firebaseConfig);
+    messaging = messaging || getMessaging(app);
+    log("Registro il service worker di prova...");
+    reg = await navigator.serviceWorker.register("./fcm-sw.js", { scope: "./fcm-scope/" });
+    await waitActive(reg);
+    log("Service worker attivo. Chiedo il token...");
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+    if (!token) { log("Nessun token ricevuto."); return; }
+    $("tok").value = token;
+    log("Fatto. Ora copia il token e mandami la conferma.");
+  } catch (e) {
+    log("ERRORE: " + (e && e.name ? e.name + " - " : "") + (e && e.message ? e.message : e));
+  }
+}
+
+async function disattiva() {
+  try {
+    if (messaging) await deleteToken(messaging);
+    const r = await navigator.serviceWorker.getRegistration("./fcm-scope/");
+    if (r) await r.unregister();
+    $("tok").value = "";
+    log("Notifiche di prova disattivate.");
+  } catch (e) {
+    log("ERRORE: " + (e && e.message ? e.message : e));
+  }
+}
+
+$("on").addEventListener("click", attiva);
+$("off").addEventListener("click", disattiva);
+$("copy").addEventListener("click", async function () {
+  const t = $("tok").value;
+  if (!t) { log("Prima attiva le notifiche."); return; }
+  try { await navigator.clipboard.writeText(t); log("Token copiato."); }
+  catch (e) { $("tok").select(); log("Copia non riuscita: tienilo premuto e scegli Copia."); }
+});
+</script>
+</body>
+</html>
