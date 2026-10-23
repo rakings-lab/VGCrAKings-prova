@@ -22,7 +22,7 @@ self.addEventListener("push", function (e) {
 self.addEventListener("notificationclick", function (e) {
   e.notification.close();
   var link = (e.notification.data && e.notification.data.link) || "./";
-  var url = new URL(link, self.location.href).href;
+  var url = new URL(link, new URL("./", self.location.href)).href;
   e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (list) {
     for (var i = 0; i < list.length; i++) {
       if (list[i].url === url && "focus" in list[i]) return list[i].focus();
