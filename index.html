@@ -639,7 +639,7 @@ document.addEventListener("click",function(ev){var x=ev.target&&ev.target.closes
 if(ONESIGNAL_APP_ID&&ONESIGNAL_APP_ID!=="demo")osdo(function(OS){window.OSREADY.then(function(){try{window.OSOPT=OS.User.PushSubscription.optedIn;OS.User.PushSubscription.addEventListener("change",function(){try{window.OSOPT=OS.User.PushSubscription.optedIn}catch(e){}npStato();if(npOnDev())nbHide()})}catch(e){}npStato();setTimeout(nbShow,6000)})});
 document.addEventListener("keydown",function(ev){if(ev.key==="Escape")$("np").hidden=true});
 $("cta-loc").addEventListener("click",function(){NV="loc";document.querySelector('#f-mode button[data-v="news"]').click();window.scrollTo(0,0)});
-var SITE_URL="https://rakings-lab.github.io/VGCrAKings";
+var SITE_URL="https://rakings-lab.github.io/VGCrAKings-prova";
 var CONTACT_EMAIL="rakingsvgc@gmail.com";
 var DEFER=null;window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();DEFER=e;pwaRefresh();if(!$("sbar").hidden)goHash()});
 /* ---- Installazione dell'app (PWA) ---- */
