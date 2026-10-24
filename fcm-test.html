@@ -11,6 +11,9 @@
   button{display:block;width:100%;margin:10px 0;padding:14px;border:0;border-radius:12px;background:#ff1f3d;color:#fff;font-size:16px;font-weight:700}
   button.sec{background:#3a2030}
   textarea{width:100%;box-sizing:border-box;height:110px;margin:6px 0;padding:10px;border-radius:10px;border:1px solid #5a3a4a;background:#0f0509;color:#fff;font:12px/1.4 monospace}
+  input[type=text]{width:100%;box-sizing:border-box;margin:6px 0;padding:10px;border-radius:10px;border:1px solid #5a3a4a;background:#0f0509;color:#fff;font-size:14px}
+  .cats label{display:inline-block;margin:4px 12px 4px 0;font-size:14px}
+  hr{border:0;border-top:1px solid #5a3a4a;margin:18px 0}
   pre{white-space:pre-wrap;word-break:break-word;background:#0f0509;border-radius:10px;padding:10px;font-size:13px;min-height:80px}
 </style>
 </head>
@@ -23,6 +26,12 @@
 <button id="copy" class="sec">2. Copia il token</button>
 <button id="diag" class="sec">3. Diagnostica</button>
 <button id="loc" class="sec">4. Notifica locale (senza Firebase)</button>
+<hr>
+<p>Archivio di prova (worker Cloudflare di prova):</p>
+<input type="text" id="wurl" placeholder="https://vgc-subs-prova.xxxx.workers.dev" autocomplete="off">
+<div class="cats" id="cats"></div>
+<button id="save" class="sec">5. Salva nel worker con queste scelte</button>
+<hr>
 <button id="off" class="sec">Disattiva le notifiche di prova</button>
 <pre id="log"></pre>
 
@@ -139,6 +148,27 @@ $("loc").addEventListener("click", async function () {
   }
 });
 $("diag").addEventListener("click", diagnostica);
+const CATS_TEST = ["money=all", "money=33", "gc", "regionali", "vr", "vrreg", "maddos", "locali", "locali8", "player", "winner", "vrwin"];
+const DEFAULT_ON = ["money=all", "gc", "regionali", "vr"];
+$("cats").innerHTML = CATS_TEST.map(function (c) {
+  return '<label><input type="checkbox" value="' + c + '"' + (DEFAULT_ON.indexOf(c) >= 0 ? " checked" : "") + "> " + c + "</label>";
+}).join("");
+try { $("wurl").value = localStorage.getItem("fcm-wurl") || ""; } catch (e) {}
+$("save").addEventListener("click", async function () {
+  try {
+    const w = $("wurl").value.trim().replace(/\/+$/, "");
+    const tok = $("tok").value.trim();
+    if (!/^https:\/\/[^ ]+$/.test(w)) { log("Scrivi prima l'indirizzo del worker (deve iniziare con https://)."); return; }
+    if (!tok) { log("Prima premi 1. Attiva le notifiche per ottenere il token."); return; }
+    try { localStorage.setItem("fcm-wurl", w); } catch (e) {}
+    const c = Array.prototype.map.call(document.querySelectorAll("#cats input:checked"), function (x) { return x.value; });
+    const r = await fetch(w, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ id: tok, c: c, h: [], f: [], l: "it" }) });
+    const t = await r.text();
+    log(new Date().toLocaleTimeString() + " - worker: HTTP " + r.status + " " + t.slice(0, 120));
+  } catch (e) {
+    log("ERRORE salvataggio: " + (e && e.message ? e.message : e));
+  }
+});
 $("on").addEventListener("click", attiva);
 $("off").addEventListener("click", disattiva);
 $("copy").addEventListener("click", async function () {
