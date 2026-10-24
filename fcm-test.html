@@ -21,6 +21,7 @@
 <p>Token di questo dispositivo:</p>
 <textarea id="tok" readonly placeholder="Qui comparira' il token"></textarea>
 <button id="copy" class="sec">2. Copia il token</button>
+<button id="diag" class="sec">3. Diagnostica</button>
 <button id="off" class="sec">Disattiva le notifiche di prova</button>
 <pre id="log"></pre>
 
@@ -94,6 +95,38 @@ async function disattiva() {
   }
 }
 
+async function diagnostica() {
+  try {
+    log("--- Diagnostica " + new Date().toLocaleTimeString() + " ---");
+    log("Browser: " + navigator.userAgent.slice(0, 110));
+    log("Permesso notifiche: " + Notification.permission);
+    const r = await navigator.serviceWorker.getRegistration("./fcm-scope/");
+    log("Service worker: " + (r ? (r.active ? "attivo" : "presente ma NON attivo") : "NON registrato"));
+    if (r) {
+      const s = await r.pushManager.getSubscription();
+      log("Iscrizione push: " + (s ? "presente (" + new URL(s.endpoint).host + ")" : "ASSENTE"));
+      if (Notification.permission === "granted") {
+        app = app || initializeApp(firebaseConfig);
+        messaging = messaging || getMessaging(app);
+        const t = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: r });
+        const nuovo = $("tok").value;
+        log("Token attuale: ..." + t.slice(-12) + (nuovo ? (nuovo === t ? " (uguale a quello in casella)" : " (DIVERSO da quello in casella)") : ""));
+        $("tok").value = t;
+      }
+    }
+    const c = await caches.open("fcm-log");
+    const keys = await c.keys();
+    log("Push ricevuti dal service worker: " + keys.length);
+    const ultimi = keys.slice(-8);
+    for (const k of ultimi) {
+      const j = await (await c.match(k)).json();
+      log("  " + new Date(j.t).toLocaleTimeString() + "  " + (j.raw || "").slice(0, 60));
+    }
+  } catch (e) {
+    log("ERRORE diagnostica: " + (e && e.message ? e.message : e));
+  }
+}
+$("diag").addEventListener("click", diagnostica);
 $("on").addEventListener("click", attiva);
 $("off").addEventListener("click", disattiva);
 $("copy").addEventListener("click", async function () {
