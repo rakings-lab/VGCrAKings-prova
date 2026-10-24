@@ -1,0 +1,45 @@
+name: FCM prova - avviso a chi ha scelto il canale
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "Canale (es. gc, money, money33, regionali, vr, winner, locali, TUTTI)"
+        required: true
+        default: "gc"
+      title:
+        description: "Titolo"
+        required: false
+        default: "Prova rAKings"
+      body:
+        description: "Testo"
+        required: false
+        default: "Avviso di prova per il canale"
+      link:
+        description: "Link da aprire al tocco (facoltativo, es. #annuncio-5)"
+        required: false
+        default: ""
+      dry_run:
+        description: "A secco? (si = non invia, mostra solo chi riceverebbe; no = invia)"
+        required: true
+        default: "si"
+permissions:
+  contents: read
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install google-auth requests
+      - run: python fcm_send_list.py
+        env:
+          FCM_SERVICE_ACCOUNT: ${{ secrets.FCM_SERVICE_ACCOUNT }}
+          SUBS_URL: ${{ vars.SUBS_URL }}
+          SUBS_TOKEN: ${{ secrets.SUBS_TOKEN }}
+          FCM_TOPIC: ${{ inputs.topic }}
+          FCM_TITLE: ${{ inputs.title }}
+          FCM_BODY: ${{ inputs.body }}
+          FCM_LINK: ${{ inputs.link }}
+          DRY_RUN: ${{ inputs.dry_run }}
