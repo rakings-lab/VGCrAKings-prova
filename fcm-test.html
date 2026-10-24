@@ -22,6 +22,7 @@
 <textarea id="tok" readonly placeholder="Qui comparira' il token"></textarea>
 <button id="copy" class="sec">2. Copia il token</button>
 <button id="diag" class="sec">3. Diagnostica</button>
+<button id="loc" class="sec">4. Notifica locale (senza Firebase)</button>
 <button id="off" class="sec">Disattiva le notifiche di prova</button>
 <pre id="log"></pre>
 
@@ -126,6 +127,17 @@ async function diagnostica() {
     log("ERRORE diagnostica: " + (e && e.message ? e.message : e));
   }
 }
+$("loc").addEventListener("click", async function () {
+  try {
+    if (Notification.permission !== "granted") { log("Prima attiva le notifiche (permesso non concesso)."); return; }
+    const r = await navigator.serviceWorker.getRegistration("./fcm-scope/");
+    if (!r) { log("Prima premi 1. Attiva le notifiche."); return; }
+    await r.showNotification("Prova locale", { body: "Se vedi questa, la visualizzazione funziona", icon: "icon-192.png", badge: "badge-96.png" });
+    log(new Date().toLocaleTimeString() + " - notifica locale richiesta al browser.");
+  } catch (e) {
+    log("ERRORE notifica locale: " + (e && e.message ? e.message : e));
+  }
+});
 $("diag").addEventListener("click", diagnostica);
 $("on").addEventListener("click", attiva);
 $("off").addEventListener("click", disattiva);
