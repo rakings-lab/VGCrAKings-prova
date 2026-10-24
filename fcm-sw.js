@@ -25,10 +25,13 @@ self.addEventListener("push", function (e) {
 self.addEventListener("notificationclick", function (e) {
   e.notification.close();
   var link = (e.notification.data && e.notification.data.link) || "./";
-  var url = new URL(link, new URL("./", self.location.href)).href;
+  var base = new URL("./", self.location.href);        // radice del sito
+  var url = new URL(link, base).href;
+  var root = url === base.href;                        // nessuna sezione: basta riportare in primo piano il sito
   e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (list) {
     for (var i = 0; i < list.length; i++) {
-      if (list[i].url === url && "focus" in list[i]) return list[i].focus();
+      var c = list[i];
+      if (("focus" in c) && (c.url === url || (root && c.url.indexOf(base.href) === 0))) return c.focus();
     }
     return self.clients.openWindow(url);
   }));
